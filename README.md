@@ -1,13 +1,7 @@
-Testing
+This script calculates the delay difference between video frames
 
-1 2 3
-
-bla bla BLA blal blaaaaa
-Tilak
-
-HEHHHE
-
-HALLOOOOOOO
+USAGE:
+python filename.py
 
 
-heheheh
+MORE to come
