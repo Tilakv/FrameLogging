@@ -7,7 +7,7 @@ import shutil
 
 Loc = "C:/Users/SURYA/Dropbox/video codec/"
 
-# HERE is the first comment
+# HERE is the first comment extended toooooooo...
 # Function Definition
 def extractTimeStampFrameNumnCodeWord(inFile, codeWord, outFile):
     ## This Funcation Extracts the EPOC Time, FrameNumber and 6BYTES of Code word.
