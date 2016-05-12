@@ -8,211 +8,224 @@ import shutil
 Loc = "C:/Users/SURYA/Dropbox/video codec/"
 
 
-
-
-# # Reading of file & modification part
-# f = open(Loc+"wireshark.log",'r')
-# out = f.readlines()
-# f.close()
-# length = len(out)
-# temp = []
-# #print length
-
-# rn = 163591
-# temprn = out[rn].lstrip().split()
-# print temprn
-#
-# tempz = []
-# for i in range(0,length-1):
-# ## i = 163591
-#     if "..!k/!..!k.&..E." in out[i]:
-#         temp_1 = out[i].lstrip().split();
-#         tempz.append(temp_1[0] + "  " + temp_1[1] + " " + temp_1[2] + " " + temp_1[3] + " " + temp_1[4] + " " + temp_1[5] + " "
-#                      + temp_1[6] + " " + temp_1[7] + " " + temp_1[8] + " " + temp_1[9]+ " " + temp_1[10] + " " + temp_1[11] + " "
-#                      + temp_1[12] + " " + temp_1[13]+" " + temp_1[14] + " " + temp_1[15]+ " " + temp_1[6] + " " + temp_1[17]+ "\n")
-# f_out = open(Loc+"temp1.log",'w')
-# for item in tempz:
-#     f_out.write("%s" % item)
-# f_out.close()
-
-
-# Reading of file ans saving Time Stamp and FrameNubmer
-Loc = "C:/Users/SURYA/Dropbox/video codec/"
-f = open(Loc+"wireshark_server.log",'r')
-out = f.readlines()
-f.close()
-length = len(out)
-#print length
-tempz = []
-for i in range(0, length-1):
-## i = 163591
-    tempLine = out[i].lstrip().split()
-    #print "number:", len(tempLine)
-    if "Epoch" in out[i]:
-        tempEp = tempLine
-        tempEp[2] = str(int(float(tempEp[2])*1000000))
-    elif "Frame Number:" in out[i]:
-        tempFN = tempLine
-    elif "0060" in out[i]:
-        tempCw = tempLine
-        if tempCw[0] == "0060":
-            lenCwLine = len(tempCw)
-            #print "number:", i, "Length", len(tempCw)
-            if lenCwLine > 12:
+# Function Definition
+def extractTimeStampFrameNumnCodeWord(inFile, codeWord, outFile):
+    ## This Funcation Extracts the EPOC Time, FrameNumber and 6BYTES of Code word.
+    ## The Column Data in the out Files as Follows: --EPOC TIME---FRAME NUM---6BYTESCODEWORD
+    f = open(inFile, 'r')
+    out = f.readlines()
+    f.close()
+    length = len(out)
+    #print length
+    tempz = []
+    for i in range(0, length-1):
+        ## i = 163591
+        tempLine = out[i].lstrip().split()
+        #print "number:", len(tempLine)
+        if "Epoch" in out[i]:
+            tempEp = tempLine
+            tempEp[2] = str(int(float(tempEp[2])*1000000))
+        elif "Frame Number:" in out[i]:
+            tempFN = tempLine
+        elif codeWord in out[i]:
+            tempCw = tempLine
+            if tempCw[0] == codeWord:
+                lenCwLine = len(tempCw)
                 #print "number:", i, "Length", len(tempCw)
-                CodeW = tempCw[1]+tempCw[2]+tempCw[3]+tempCw[4]+tempCw[5]+tempCw[6]
-                tempz.append(tempEp[2] + "\t" + tempFN[2] + "\t" + tempCw[1] + "\t" + tempCw[2] + "\t" + tempCw[3] + "\t" + tempCw[4] + "\t" + tempCw[5] + "\t" + tempCw[6] )
-                # i = int(str(CodeW),16)   ###For Hexa to Decimal
-                # if int(CodeW,16) != 0:
-                #     tempz.append("\t"+str(i))
-                tempz.append("\n")
+                if lenCwLine > 12:
+                    #print "number:", i, "Length", len(tempCw)
+                    CodeW = tempCw[1]+tempCw[2]+tempCw[3]+tempCw[4]+tempCw[5]+tempCw[6]
+                    tempz.append(tempEp[2] + "\t" + tempFN[2] + "\t" + tempCw[1] + "\t" + tempCw[2] + "\t" + tempCw[3] + "\t" + tempCw[4] + "\t" + tempCw[5] + "\t" + tempCw[6] )
+                    # i = int(str(CodeW),16)   ###For Hexa to Decimal
+                    # if int(CodeW,16) != 0:
+                    #     tempz.append("\t"+str(i))
+                    tempz.append("\n")
 
-# for item in tempz:
-#     temp1 = item.lstrip().split();
-#     print temp1[1]
+    #writing data to file
+    f_out = open(outFile,'w')
+    for item in tempz:
+        f_out.write("%s" % item)
+    f_out.close()
 
-f_out = open(Loc+"pyGen_wireshark_server_TSnFNnCW.log",'w')
-for item in tempz:
-    f_out.write("%s" % item)
-f_out.close()
+
+# Function Definition
+def extractTimeStampFramNumnHexacodeForaGivenCode(inFile, codeWord, outFile):
+    # Reading of file & modification part
+    f = open(inFile,'r')
+    out = f.readlines()
+    f.close()
+    length = len(out)
+    temp = []
+    #print length
+    hc1 = codeWord[0]
+    hc2 = codeWord[1]
+    hc3 = codeWord[2]
+    for k in range(0,length-1):
+        if "Epoch" in out[k]:
+            temp1 = out[k].lstrip().split();
+            temp1[2]=str(int(float(temp1[2])*1000000))
+            #temp.append(temp1[2]+"\t");
+        elif "Frame Number:" in out[k]:
+            tempFN = out[k].lstrip().split();
+        elif hc1 in out[k]:        #############   here In wireshark it will look for 01 4f (pts in hex) it may be differ then change
+            temp2 = out[k].lstrip().split();
+            temp4 = out[k+1].lstrip().split();
+            if len(temp2)>17:
+                for t, j in enumerate(temp2):
+                    if j == hc1:
+                        if t < 12 and temp2[t+1]==hc2 and temp2[t+2]==hc3:                           # change temp[t+2] according wireshark packet
+                            temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp2[t+4]+temp2[t+5]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+"\t" +tempFN[2]+ "\n")
+                        elif t==12 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
+                            temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp2[t+4]+temp4[1]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+ "\t" +tempFN[2]+ "\n")
+                        elif t==13 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
+                            temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp4[1]+temp4[2]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+ "\t" + tempFN[2]+ "\n")
+                        elif t==14 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
+                            temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp4[1]+temp4[2]+temp4[3]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
+                        elif t==15 and temp2[t+1]==hc2 and temp4[1]==hc3:
+                            temp3 = temp2[t]+temp2[t+1]+temp4[1]+temp4[2]+temp4[3]+temp4[4]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
+                        elif t==16 and temp4[1]==hc2 and temp4[2]==hc3:
+                            temp3 = temp2[t]+temp4[1]+temp4[2]+temp4[3]+temp4[4]+temp4[5]
+                            i = int(str(temp3),16)
+                            if int(temp3,16) != 0:
+                                temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
+
+    #writing data to file
+    f_out = open(outFile,'w')
+    for item in temp:
+        f_out.write("%s" % item)
+    f_out.close()
+
+# Function Definition
+def extractHiddenFrames(inFile1, inFile2, outFile):
+    ## This function extracts the frames which occur between frames which are identified by using HEXA Code
+    ## Output file contains. 1. Frame Deteced using HEXACODE. 2.Number of Hidden Frames. 3 to end. Hidden Frames
+
+    ## Finding the frames and TS between sender and reciever frame TS ***Need to correct the text
+    ##print "Index for 132 : ", tempDRFN.index('132\n')
+
+    ## 1.Extracting frame numbers from python_generated_wireshark or Wireshark server Logsfile
+    #f_PGFN = open(Loc+"python_generated_wireshark_server.log",'r')
+
+    f_PGFN = open(inFile1,'r')
+    out = f_PGFN.readlines()
+    f_PGFN.close()
+    length = len(out)
+    tempPGFN = []
+    for i in range(0,length-1):
+        temp1 = out[i].lstrip().split()
+        tempPGFN.append(temp1[2])
+    #print tempPGFN
+
+    ##tempPGFN is python generated Frame numbers in Wiresharklog file based on 01 54 85 Code,
+    ## tempwFN is Frame all frame numbers in log file
+    #f_wFN = open(Loc+"pyGen_wireshark_server_TSnFNnCW.log",'r')
+    f_wFN = open(inFile2,'r')
+    out_wFN = f_wFN.readlines()
+    f_wFN.close()
+    length_wFN = len(out_wFN)
+    tempwFN = []
+    for i in range(0,length_wFN-1):
+        # i = 1
+        temp1 = out_wFN[i].lstrip().split()
+        #print temp1[1]
+        tempwFN.append(temp1[1])
+
+    ## creating sepate list for recived frames and its previous frames needs to clean.
+    length_wTSLogPGFN = len(tempPGFN)
+    #print length_wTSLogPGFN
+    sIndx = 0
+    tmpL = []
+    for j in range(0, length_wTSLogPGFN-1):
+        # j =1
+        iD = tempPGFN[j]
+        eIndx = tempwFN.index(iD)
+        sET = []
+        sET.append(iD)          # Frame number from pygenwireshraklog.
+        tempN = tempwFN[sIndx:eIndx]   # The frames that occur between two frames
+        lentempN = len(tempN)   # Number of Frames that occur between two frames
+        sET.append(str(lentempN))
+        sET = sET + tempN
+        #print sET
+        #lenSET = len(sET)
+        for item in sET:
+            tmpL.append(item + "\t")
+        tmpL.append("\n")
+        sIndx = eIndx + 1
+
+    #writing data to file
+    #f_outFNG = open(Loc+"py_Gen_WiresharkServer_FNG.log",'w')
+    f_outFNG = open(outFile,'w')
+    for item in tmpL:
+        f_outFNG.write("%s" % item)
+    f_outFNG.close()
 
 
 ##### PART - 1a: abstraction of epoch time and pts from wireshark packet log ############
 # note*** : Program can be changed according to the data field captured by wireshark #####
-
-# Reading of file & modification part
-f = open(Loc+"wireshark_server.log",'r')
-out = f.readlines()
-f.close()
-length = len(out)
-temp = []
-#print length
-hc1 = "01"
-hc2 = "54"
-hc3 = "95"
-
-
-for k in range(0,length-1):
-    lentemp = len(temp)
-    # if lentemp > 4:
-    #     break
-    if "Epoch" in out[k]:
-        temp1 = out[k].lstrip().split();
-        temp1[2]=str(int(float(temp1[2])*1000000))
-        #temp.append(temp1[2]+"\t");
-    elif "Frame Number:" in out[k]:
-        tempFN = out[k].lstrip().split();
-    elif "01" in out[k]:        #############   here In wireshark it will look for 01 4f (pts in hex) it may be differ then change
-        temp2 = out[k].lstrip().split();
-        temp4 = out[k+1].lstrip().split();
-        if len(temp2)>17:
-            for t, j in enumerate(temp2):
-                if j == hc1:
-                    if t < 12 and temp2[t+1]==hc2 and temp2[t+2]==hc3:                           # change temp[t+2] according wireshark packet
-                        temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp2[t+4]+temp2[t+5]
-                        #print(temp3)
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+"\t" +tempFN[2]+ "\n")
-                            #print "Cond1", k
-                    elif t==12 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
-                        temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp2[t+4]+temp4[1]
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+ "\t" +tempFN[2]+ "\n")
-                            #print "Cond2", k
-                    elif t==13 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
-                        #print(temp1[2])
-                        temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp2[t+3]+temp4[1]+temp4[2]
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+ "\t" + tempFN[2]+ "\n")
-                            #print "Cond3", k
-                    elif t==14 and temp2[t+1]==hc2 and temp2[t+2]==hc3:
-                        temp3 = temp2[t]+temp2[t+1]+temp2[t+2]+temp4[1]+temp4[2]+temp4[3]
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
-                            # print "Cond4", k
-                            # print "Cond4", temp2
-                            # print "Cond4", temp4
-                            # print "Cond4", tempFN[2]
-                    elif t==15 and temp2[t+1]==hc2 and temp4[1]==hc3:
-                        temp3 = temp2[t]+temp2[t+1]+temp4[1]+temp4[2]+temp4[3]+temp4[4]
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
-                            #print "Cond5", k
-                    elif t==16 and temp4[1]==hc2 and temp4[2]==hc3:
-                        temp3 = temp2[t]+temp4[1]+temp4[2]+temp4[3]+temp4[4]+temp4[5]
-                        i = int(str(temp3),16)
-                        if int(temp3,16) != 0:
-                            temp.append(temp1[2]+"\t"+str(i)+"\t" + tempFN[2]+ "\n")
-                            # print "Cond6", k
-                            # print "Cond6", temp2
-                            # print "Cond6", temp4
-                            # print "Cond6", tempFN[2]
-#writing modified data to anotherfile
-f_out = open(Loc+"python_generated_wireshark_serverLogs.log",'w')
-for item in temp:
-    f_out.write("%s" % item)
-f_out.close()
-#shutil.copy2(Loc+"python_generated_wireshark_server.log", Loc+"python_generated_wireshark_server_p1a.log")
-
-
-## 1.Extracting frame numbers from python_generated_wiresharkLogsfile
+#### ---------------------------WireShark Server-----------------------------------########
+##### PART - 1.a1: abstraction of epoch time from WireShark server log ###########
+#Function 1 Calling
 Loc = "C:/Users/SURYA/Dropbox/video codec/"
-f = open(Loc+"python_generated_wireshark_serverLogs.log",'r')
-out = f.readlines()
-f.close()
-length = len(out)
-tempPGFN = []
+inFile1 = Loc+"wireshark_server.log"
+CW = "0060"
+outFile1 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
 
-for i in range(0,length-1):
-    temp1 = out[i].lstrip().split()
-    tempPGFN.append(temp1[2])
-#print tempPGFN
+extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
 
 
+#Function 2 Calling
+inFile1 = Loc+"wireshark_server.log"
+CW2 = ["01", "54", "95"]
+outFile2 = Loc+"python_generated_wireshark_server.log"
 
-## Finding the frames and TS between sender and reciever frame TS ***Need to correct the text
-##print "Index for 132 : ", tempDRFN.index('132\n')
+extractTimeStampFramNumnHexacodeForaGivenCode(inFile1, CW2, outFile2)
 
-## tempDRFN  is python generated Frame numbers in Wiresharklog file based on 01 54 85 Code, tempwFN is Frame all frame numbers in log file
+#Function 3 Calling
+inFile1 = Loc+"python_generated_wireshark_server.log"
+inFile2 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
+outFile3 = Loc+"pyGen_wireshark_server_HiddenFrames.log"
 
-f_wFN = open(Loc+"pyGen_wireshark_server_TSnFN.log",'r')
-out_wFN = f_wFN.readlines()
-f_wFN.close()
-length_wFN = len(out_wFN)
-tempwFN = []
-for i in range(0,length_wFN-1):
-    # i = 1
-    temp1 = out_wFN[i].lstrip().split()
-    #print temp1[1]
-    tempwFN.append(temp1[1])
+extractHiddenFrames(inFile1, inFile2, outFile3)
 
-## creating sepate list for recived frames and its previous frames needs to clean.
-length_wTSLogPGFN = len(tempPGFN)
-#print length_wTSLogPGFN
-sIndx = 0
-tmpL = []
+##### PART - 1.a2: abstraction of epoch time from WireShark log  ###########
+#### ---------------------------WireShark --------------------- #############
 
-f_outFNG = open(Loc+"py_Gen_WiresharkServer_FNG.log",'w')
+inFile1 = Loc+"wireshark.log"
+CW = "0060"
+outFile1 = Loc+"pyGen_wireshark_TSnFNnCW.log"
 
-for j in range(0, length_wTSLogPGFN-1):
-    # j =1
-    iD = tempPGFN[j]
-    eIndx = tempwFN.index(iD)
-    sET = []
-    sET.append(iD)
-    tempN = tempwFN[sIndx:eIndx]
-    sET = sET + tempN
-    print sET
-    sIndx = eIndx + 1
-    f_outFNG.write("%s" % sET)
+extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
 
-f_outFNG.close()
 
+#Function 2 Calling
+inFile1 = Loc+"wireshark.log"
+CW2 = ["01", "54", "95"]
+outFile2 = Loc+"python_generated_wireshark.log"
+
+extractTimeStampFramNumnHexacodeForaGivenCode(inFile1, CW2, outFile2)
+
+
+#Function 3 Calling
+inFile1 = Loc+"python_generated_wireshark.log"
+inFile2 = Loc+"pyGen_wireshark_TSnFNnCW.log"
+outFile3 = Loc+"pyGen_wireshark_HiddenFrames.log"
+
+extractHiddenFrames(inFile1, inFile2, outFile3)
 
 
 ##### PART - 1b: abstraction of epoch time and pts  from ffserver log  ###########
@@ -241,11 +254,10 @@ for item in temp:
     f_out.write("%s" % item)
 #print(temp)
 f_out.close()
-shutil.copy2(Loc+"python_generated_ffserver_server.log", Loc+"python_generated_ffserver_server_p1b.log")
 
 ##### PART - 1c: Epoch Time Difference file between Wireshark frame & FFserver frame  ###########
 
-f_1 = open(Loc+"python_generated_wireshark_server.log",'r')
+f_1 = open(Loc+"python_generated_wireshark.log",'r')
 out_1 = f_1.readlines()
 f_1.close()
 length = len(out_1)
@@ -278,7 +290,6 @@ for item in temp:
     f_out.write("%s" % item)
 #print(temp)
 f_out.close()
-shutil.copy2(Loc+"python_generated_wirehark+ffserver_timestamp.log", Loc+"python_generated_wirehark+ffserver_timestamp__p1c.log")
 
 ##### PART - 2: abstraction of BMPdecoder and FFMENC epoch time from ffmpeg log  ###########
 
@@ -321,7 +332,6 @@ for item in temp:
     f_out.write("%s" % item)
 f_out.close()
 #print(temp)
-shutil.copy2(Loc+"python_generated_bmp_ffmenc_render_timestamp.log", Loc+"python_generated_bmp_ffmenc_render_timestamp_p2.log")
 
 ##### PART - 3: abstraction of epoch time from render log for particular frame from ffmpeg log ###########
 
@@ -359,7 +369,6 @@ for item in z:
 f_out.close()
 #print(temp)
 
-shutil.copy2(Loc+"python_generated_bmp_ffmenc_render_timestamp.log", Loc+"python_generated_bmp_ffmenc_render_timestamp_p3.log")
 ##### PART - 4: abstraction of epoch time from server log  for particular wireshark captured frame ###########
 
 
@@ -395,9 +404,8 @@ for item in z:
     f_out.write("%s" % item)
 f_out.close()
 #print(temp)
-shutil.copy2(Loc+"python_generated_bmp_ffmenc_render_timestamp.log", Loc+"python_generated_bmp_ffmenc_render_timestamp_p4.log")
 
-##### PART - 4.5: abstraction of epoch time from WireSharkSender log ###########
+
 
 
 
