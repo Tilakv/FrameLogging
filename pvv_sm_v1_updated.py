@@ -5,7 +5,7 @@ import math
 import shutil
 
 
-Loc = "C:/Users/SURYA/Dropbox/video codec/"
+Loc = "/home/tilak/Desktop/Test_Scripts/"
 #Loc = "C:/Users/SURYA/Documents/GitHub/FrameLogging/"
 
 # Function Definition
