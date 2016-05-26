@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -491,6 +490,7 @@ plt.legend( loc='upper left', numpoints = 1,prop={'size':6.5} )
 fig.savefig('delay_with_PL_0.01.png')
 plt.show()
 
+<<<<<<< HEAD
 =======
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1240,3 +1240,5 @@ plt.legend( loc='upper left', numpoints = 1,prop={'size':6.5} )
 plt.show()
 
 >>>>>>> origin/Tilak
+=======
+>>>>>>> Surya
