@@ -6,8 +6,42 @@ import shutil
 
 
 Loc = "C:/Users/SURYA/Dropbox/video codec/"
+#Loc = "C:/Users/SURYA/Documents/GitHub/FrameLogging/"
 
-# HERE is the first comment extended toooooooo...Further
+# Function Definition
+def extractTimeStampFrameNumnSeqNum(inFile, codeWord, outFile):
+    # This is function that extracts Epoch Time, FrameNum and Sequence Number
+    f = open(inFile, 'r')
+    out = f.readlines()
+    f.close()
+    length = len(out)
+    #print length
+    tempz = []
+    for i in range(0, length-1):
+        ## i = 163591
+        tempLine = out[i].lstrip().split()
+        #print "number:", len(tempLine)
+        if "Epoch" in out[i]:
+            tempEp = tempLine
+            tempEp[2] = str(int(float(tempEp[2])*1000000))
+        elif "Frame Number:" in out[i]:
+            tempFN = tempLine
+        elif codeWord in out[i]:
+            tempCw = tempLine
+            if tempCw[11] == codeWord:
+                lenCwLine = len(tempCw)
+                #print "number:", i, "Length", len(tempCw)
+                if lenCwLine > 10:
+                    #print "Senumber:", tempCw[11], "Num", tempCw[12]
+                    tempz.append(tempEp[2] + "\t" + tempFN[2] + "\t" + tempCw[12] + "\n")
+
+    #writing data to file
+    f_out = open(outFile,'w')
+    for item in tempz:
+        f_out.write("%s" % item)
+    f_out.close()
+
+
 # Function Definition
 def extractTimeStampFrameNumnCodeWord(inFile, codeWord, outFile):
     ## This Funcation Extracts the EPOC Time, FrameNumber and 6BYTES of Code word.
@@ -148,12 +182,14 @@ def extractHiddenFrames(inFile1, inFile2, outFile):
     ## creating sepate list for recived frames and its previous frames needs to clean.
     length_wTSLogPGFN = len(tempPGFN)
     #print length_wTSLogPGFN
-    sIndx = 0
+    #sIndx = 0
     tmpL = []
     for j in range(0, length_wTSLogPGFN-1):
         # j =1
         iD = tempPGFN[j]
-        eIndx = tempwFN.index(iD)
+        iD2 = tempPGFN[j+1]
+        sIndx = tempwFN.index(iD) + 1
+        eIndx = tempwFN.index(iD2)
         sET = []
         sET.append(iD)          # Frame number from pygenwireshraklog.
         tempN = tempwFN[sIndx:eIndx]   # The frames that occur between two frames
@@ -175,17 +211,182 @@ def extractHiddenFrames(inFile1, inFile2, outFile):
     f_outFNG.close()
 
 
+
+## Extracting Duplicates with same sequenceNumber (retransmitted frames)   ##May25
+def extractDuplicateSeqNumberIndxnCount(inFile, outFile, colNumWanttoRemDup):
+    ## Reading Sequence number from the log file
+    f = open(inFile,'r')
+    out = f.readlines()
+    f.close()
+    #colNumWanttoRemDup = 2
+    length = len(out)
+    tempSeqN = []
+    for i in range(0,length-1):
+        temp1 = out[i].lstrip().split()
+        #lengthDR = len(tempDR)
+        tempSeqN.append(temp1[colNumWanttoRemDup])
+    #print tempSeqN
+
+    ##Extracting Unique SeqNumber
+    tempUniqSeqN = []
+    for i in tempSeqN:
+        if i not in tempUniqSeqN:
+            tempUniqSeqN.append(i)
+    #print tempUniqSeqN
+
+    # lenSeqN = len(tempSeqN)
+    # lenUniqSeqN = len(tempUniqSeqN)
+    # print "lenSeqN", lenSeqN , "lenUniqSeqN", lenUniqSeqN
+
+    ##Finding duplicate index locations and counter
+    seqListabtDup = []
+    for k, item1 in enumerate(tempUniqSeqN):
+        #print "k:", k, "tempUniqSeqN:", item1
+        counter = 0
+        seqListabtDup.append(item1 + "\t")
+        for l, item2 in enumerate(tempSeqN):
+            #print "l:", l, "tempSeqN:", item2
+            if item1 == item2:
+                seqListabtDup.append(str(l)+"\t")    #Adding duplicate index locations
+                counter += 1
+        seqListabtDup.append(str(counter) + "\n")    #Number of duplicates of that instant
+        #print "number of duplicates found for SeqN :", item1, "=is:", counter
+
+    #writing the duplicates List
+    f_out = open(outFile,'w')
+    for item in seqListabtDup:
+        f_out.write("%s" % item)
+    f_out.close()
+    #print
+
+
+
+## Extracting TS differce between Sender and Rxer based on Sequence Number  ##May25
+def computeDelaybnWiresharkSenderNRxer_Ext1(inFile1, inFile2, inFile3, inFile4, outFile1):
+    f_wsAF = open(inFile1,'r')  ## Reading All frames  data in wireshark_server_TSnFNnSN
+    out_wsAF = f_wsAF.readlines()
+    f_wsAF.close()
+    length_wsAF = len(out_wsAF)
+
+    f_wsHF = open(inFile2,'r')  ## Reading Hidden frames in pyGen_wireshark_server_HiddenFrames
+    out_wsHF = f_wsHF.readlines()
+    f_wsHF.close()
+    length_wsHF = len(out_wsHF)
+
+    f_wAF = open(inFile3,'r')  ## Reading ALL frames data in pyGen_wireshark_TSnFNnSN
+    out_wAF = f_wAF.readlines()
+    f_wAF.close()
+    length_wAF = len(out_wAF)
+
+    f_wsDSeqN = open(inFile4,'r')  ## Reading Duplicate SeqNum data in pyGen_wireshark_server_seqDupList.log
+    out_wsDSeqN = f_wsDSeqN.readlines()
+    f_wsDSeqN.close()
+    length_wsDSeqN = len(out_wsDSeqN)
+
+    ## Reading Duplicate SeqNum from pyGen_wireshark_server_seqDupList.log and creating a List
+    tempws_DupSeqNL = []
+    for k in range(0, length_wsDSeqN-1):
+        temp1ws_SeqN = out_wsDSeqN[k].lstrip().split()
+        tempws_DupSeqNL.append(temp1ws_SeqN[0])
+
+    ## Reading Frame Numbers from pyGen_wireshark_server_TSnFNnSN and Creating a List
+    tempws_FrN = []
+    for k in range(0, length_wsAF-1):
+        temp1ws_AF = out_wsAF[k].lstrip().split()
+        tempws_FrN.append(temp1ws_AF[1])
+
+    ## Reading Frame Numbers from pyGen_wireshark_TSnFNnSN and Creating a List
+    tempw_SeqN = []
+    for l in range(0, length_wAF-1):
+        temp1w_AF = out_wAF[l].lstrip().split()
+        tempw_SeqN.append(temp1w_AF[2])
+
+    #print tempws_FrN
+    #print tempw_SeqN
+    #print tempws_DupSeqNL
+
+    outBuf = []
+    for j in range(0, length_wsHF-1):
+        temp1ws_HF = out_wsHF[j].lstrip().split()
+        pts_wsFrN = temp1ws_HF[0]
+        pts_wsHFcounter = int(temp1ws_HF[1])
+        pts_wsFrN_LastFr = temp1ws_HF[pts_wsHFcounter + 1]
+        #print pts_wsFrN, pts_wsFrN_LastFr
+        #print j, "FirstHframe:", pts_wsFrN, "LastHframe:", pts_wsFrN_LastFr
+        if pts_wsHFcounter > 1:
+            FlaggSF = False
+            FlaggEF = False
+            reTxmitFlagg = False
+            pts_wsFrN_Locin_ws_AF = tempws_FrN.index(pts_wsFrN)
+            pts_wsFrN_LastFr_Locin_ws_AF = tempws_FrN.index(pts_wsFrN_LastFr)
+            if pts_wsFrN_Locin_ws_AF:
+                temp1ws_AF = out_wsAF[pts_wsFrN_Locin_ws_AF].lstrip().split()
+                tS_ws_SF = temp1ws_AF[0]
+                fN_ws_SF = temp1ws_AF[1]
+                seqN_ws_SF = temp1ws_AF[2]
+                if seqN_ws_SF:    ## Added on 23 MAy to check retransmitted frames
+                    ws_seqN_Locin_DupList = tempws_DupSeqNL.index(seqN_ws_SF)
+                    temp_SeqNDupListLine =  out_wsDSeqN[ws_seqN_Locin_DupList].lstrip().split()
+                    len_temp_SeqNDupListLine = len(temp_SeqNDupListLine)
+                    dupCount = int(temp_SeqNDupListLine[len_temp_SeqNDupListLine-1])
+                    dup1stSeqN_Loc = temp_SeqNDupListLine[1]
+                    #print "temp_SeqNDupListLine",temp_SeqNDupListLine, "dupCount:", dupCount
+                    if (dupCount > 1) & (str(pts_wsFrN_Locin_ws_AF) == dup1stSeqN_Loc):
+                        reTxmitFlagg = True
+                        dup2ndtSeqN_Loc = int(temp_SeqNDupListLine[2])    ##Comment clearly to understand
+                        temp1ws_rtxF = out_wsAF[dup2ndtSeqN_Loc].lstrip().split()
+                        #print "temp1ws_rtxF", temp1ws_rtxF
+                        tS_ws_rtxF = temp1ws_rtxF[0]
+                        fN_ws_rtxF = temp1ws_rtxF[1]
+                        seqN_ws_rtxF = temp1ws_rtxF[2] ## Added on 23 MAy to check retransmitted frames
+                FlaggSF = True
+            if pts_wsFrN_LastFr_Locin_ws_AF:
+                temp2ws_AF = out_wsAF[pts_wsFrN_LastFr_Locin_ws_AF].lstrip().split()
+                tS_ws_EF = temp2ws_AF[0]
+                fN_ws_EF = temp2ws_AF[1]
+                seqN_ws_EF = temp2ws_AF[2]
+                FlaggEF = True
+            if FlaggSF&FlaggEF:
+                if reTxmitFlagg:
+                    seq_Locin_w_AF = tempw_SeqN.index(seqN_ws_rtxF)
+                    fN_ws_EF =  fN_ws_rtxF
+                else:
+                    seq_Locin_w_AF = tempw_SeqN.index(seqN_ws_EF)
+
+                if seq_Locin_w_AF:
+                    temp1w_AF = out_wAF[seq_Locin_w_AF].lstrip().split()
+                    #print seq_Locin_w_AF, temp1w_AF
+                    tS_w_EF = temp1w_AF[0]
+                    fN_w_EF = temp1w_AF[1]
+                    seqN_w_EF = temp1w_AF[2]
+                    diffSnRerTS = float(tS_w_EF) - float(tS_ws_SF)
+                    diffSnRerTs_str = str(diffSnRerTS)
+                    outBuf.append(fN_ws_SF + "\t" + fN_ws_EF + "\t" + seqN_ws_SF + "\t" + seqN_ws_EF + "\t" + seqN_w_EF + "\t" + fN_w_EF + "\t" + tS_ws_SF + "\t" + tS_w_EF + "\t" + diffSnRerTs_str + "\n")
+        else :
+            outBuf.append(pts_wsFrN + "\t" + "0"+ "\t" + "\n")
+
+    #f_outTSD = open(Loc+"py_Gen_WiresharkRecieverNSender_TSD.log",'w')
+    f_outTSD = open(outFile1,'w')
+    for item in outBuf:
+        f_outTSD.write("%s" % item)
+    f_outTSD.close()
+
+
+
 ##### PART - 1a: abstraction of epoch time and pts from wireshark packet log ############
 # note*** : Program can be changed according to the data field captured by wireshark #####
 #### ---------------------------WireShark Server-----------------------------------########
 ##### PART - 1.a1: abstraction of epoch time from WireShark server log ###########
 #Function 1 Calling
-Loc = "C:/Users/SURYA/Dropbox/video codec/"
+#Loc = "C:/Users/SURYA/Dropbox/video codec/"
 inFile1 = Loc+"wireshark_server.log"
-CW = "0060"
-outFile1 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
+#CW = "0060"
+#outFile1 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
+#extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
 
-extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
+codeWord = "Seq:"
+outFile1 = Loc+"pyGen_wireshark_server_TSnFNnSN.log"
+extractTimeStampFrameNumnSeqNum(inFile1, codeWord, outFile1)
 
 
 #Function 2 Calling
@@ -197,7 +398,8 @@ extractTimeStampFramNumnHexacodeForaGivenCode(inFile1, CW2, outFile2)
 
 #Function 3 Calling
 inFile1 = Loc+"python_generated_wireshark_server.log"
-inFile2 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
+#inFile2 = Loc+"pyGen_wireshark_server_TSnFNnCW.log"
+inFile2 = Loc+"pyGen_wireshark_server_TSnFNnSN.log"
 outFile3 = Loc+"pyGen_wireshark_server_HiddenFrames.log"
 
 extractHiddenFrames(inFile1, inFile2, outFile3)
@@ -206,10 +408,13 @@ extractHiddenFrames(inFile1, inFile2, outFile3)
 #### ---------------------------WireShark --------------------- #############
 
 inFile1 = Loc+"wireshark.log"
-CW = "0060"
-outFile1 = Loc+"pyGen_wireshark_TSnFNnCW.log"
+#CW = "0060"
+#outFile1 = Loc+"pyGen_wireshark_TSnFNnCW.log"
+#extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
 
-extractTimeStampFrameNumnCodeWord(inFile1, CW, outFile1)
+codeWord = "Seq:"
+outFile1 = Loc+"pyGen_wireshark_TSnFNnSN.log"
+extractTimeStampFrameNumnSeqNum(inFile1, codeWord, outFile1)
 
 
 #Function 2 Calling
@@ -222,10 +427,37 @@ extractTimeStampFramNumnHexacodeForaGivenCode(inFile1, CW2, outFile2)
 
 #Function 3 Calling
 inFile1 = Loc+"python_generated_wireshark.log"
-inFile2 = Loc+"pyGen_wireshark_TSnFNnCW.log"
+#inFile2 = Loc+"pyGen_wireshark_TSnFNnCW.log"
+inFile2 = Loc+"pyGen_wireshark_TSnFNnSN.log"
 outFile3 = Loc+"pyGen_wireshark_HiddenFrames.log"
 
 extractHiddenFrames(inFile1, inFile2, outFile3)
+
+
+###  DELAY EXTRACTION  #####################33
+## Extracting TS difference between Sender and Rxer based on Sequence Number
+inFile1 = Loc+"pyGen_wireshark_server_TSnFNnSN.log"
+inFile2 = Loc+"pyGen_wireshark_server_HiddenFrames.log"
+inFile3 = Loc+"pyGen_wireshark_TSnFNnSN.log"
+
+###May 25
+inFile = Loc+"pyGen_wireshark_server_TSnFNnSN.log"
+outFile = Loc+"pyGen_wireshark_server_seqDupList.log"
+colNumWanttoRemDup = 2
+extractDuplicateSeqNumberIndxnCount(inFile, outFile, colNumWanttoRemDup)
+
+inFile4 = Loc+"pyGen_wireshark_server_seqDupList.log"
+
+outFile1 = Loc+"py_Gen_WiresharkRecieverNSender_TSD_May25.log"
+## Output in Columns  1: PTS Frame; 2:Last frame in the Hidden Frame.
+## Column 3: Seq Number in Wireshark server of Column1;
+## coulmn 4: Seq Number in Wireshark server of Column2;
+## Column 5: Seq Number in Wireshark of Column2;
+## column 6: TimeStamp of Seq Number in Wireshark server of Column1
+## column 7: TimeStamp of Seq Number in Wireshark of Column2
+## column 8: Differnece of Column6 and Column7
+
+computeDelaybnWiresharkSenderNRxer_Ext1(inFile1, inFile2, inFile3, inFile4, outFile1)
 
 
 ##### PART - 1b: abstraction of epoch time and pts  from ffserver log  ###########
@@ -236,6 +468,7 @@ out = f.readlines()
 f.close()
 length = len(out)
 temp = []
+temp1 = []
 prev_val = "0 0 0"
 for i in range(0,length-1):
     if "TEST FFMDEC2 ->" in out[i]:
@@ -509,6 +742,6 @@ plt.plot(x,out_6,label="Server Socket-->Client Socket")
 plt.plot(x,out_7,label="Render-->Client Socket")
 
 plt.legend( loc='upper left', numpoints = 1,prop={'size':6.5} )
-fig.savefig('delay_with_PL_0.01.png')
+#fig.savefig('delay_with_PL_0.01.png')
 plt.show()
 
