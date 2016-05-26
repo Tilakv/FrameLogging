@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 import math
-#import shutil
+import shutil
 
 
-Loc = "/home/tilak/Desktop/Test_Scripts/"
-#Loc = "C:/Users/SURYA/Documents/GitHub/FrameLogging/"
+#Loc = "/home/tilak/Desktop/Test_Scripts/"
+Loc = "C:/Users/SURYA/Dropbox/video codec/"
 
 # Function Definition
 def extractTimeStampFrameNumnSeqNum(inFile, codeWord, outFile):
